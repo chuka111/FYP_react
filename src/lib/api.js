@@ -56,14 +56,6 @@ export async function apiPatch(path, body) {
   return res.json();
 }
 
-/**
- * Subscribe to Server-Sent Events from /events.
- * Returns a cleanup function.
- *
- * @param {string} token - Firebase ID token
- * @param {function} onMessage - called with parsed JSON payload
- * @param {function} [onError] - optional error handler
- */
 export function subscribeToEvents(token, onMessage, onError) {
   const url = new URL(`${BASE}/events`);
   const controller = new AbortController();
