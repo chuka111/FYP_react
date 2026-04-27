@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { apiGet, subscribeToEvents } from "@/lib/api";
-import { SkeletonDashboard } from "@/components/LoadingSkeletons";
+import RosterPanel from "@/components/RosterPanel";
 
 function formatUTC(iso) {
   if (!iso) return "—";
@@ -78,7 +78,14 @@ export default function DashboardPage() {
     return () => clearInterval(id);
   }, []);
 
-  if (loading || !user || !dataReady) return <SkeletonDashboard />;
+  if (loading || !user || !dataReady) {
+    return (
+      <div style={{ height: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#0a0a0f" }}>
+        <div style={{ width: 36, height: 36, borderRadius: "50%", border: "3px solid #ffffff10", borderTop: "3px solid #818cf8", animation: "spin 0.8s linear infinite" }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
 
   const isIn = status?.status === "IN";
   const initials = (employee?.name || user.email || "?")[0].toUpperCase();
@@ -87,7 +94,19 @@ export default function DashboardPage() {
     <>
       <style>{`
         .dash-page {
-          display: flex; min-height: 100vh; background: var(--bg-base);
+          display: flex; flex-direction: column; min-height: 100vh; background: var(--bg-base);
+        }
+        .dash-body {
+          display: flex; flex: 1;
+        }
+        /* Mobile top bar — hidden on desktop */
+        .mobile-topbar {
+          display: none;
+        }
+        .mobile-nav-btn {
+          background: var(--bg-elevated); border: 1px solid var(--border-strong);
+          border-radius: 6px; padding: 6px 12px; color: var(--text-secondary);
+          font-size: 12px; font-weight: 600; cursor: pointer; font-family: 'Syne', sans-serif;
         }
         .dash-sidebar {
           width: 220px; flex-shrink: 0;
@@ -198,12 +217,47 @@ export default function DashboardPage() {
           font-size: 10px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase;
           padding: 2px 8px; border-radius: 4px; background: var(--bg-elevated); color: var(--text-muted);
         }
+
+        /* ── Responsive: portrait mobile ── */
+        @media (max-width: 768px) {
+          .mobile-topbar {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 14px 16px; background: var(--bg-surface);
+            border-bottom: 1px solid var(--border);
+            position: sticky; top: 0; z-index: 10;
+          }
+          .dash-sidebar { display: none !important; }
+          .dash-main { padding: 20px 16px; }
+          .dash-cards { grid-template-columns: 1fr; }
+          .dash-title { font-size: 20px; }
+          .dash-subtitle { font-size: 11px; }
+          .dash-header { flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
+          .table-wrap { overflow-x: auto; }
+          .live-badge { font-size: 11px; padding: 5px 10px; }
+        }
       `}</style>
 
       <div className="dash-page">
+        {/* Mobile top bar */}
+        <div className="mobile-topbar">
+          <div style={{ fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: 16, color: "var(--accent)" }}>
+             PunchIn
+          </div>
+          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            {employee?.is_admin && (
+              <button className="mobile-nav-btn" onClick={() => router.push("/admin")}>Admin</button>
+            )}
+            <button className="mobile-nav-btn" onClick={async () => { await logout(); router.replace("/login"); }}>
+              Sign out
+            </button>
+          </div>
+        </div>
+
+        <div className="dash-body">
         <aside className="dash-sidebar">
           <div className="dash-logo">
-            Smart Punch In
+            <div className="dash-logo-icon">◉</div>
+            PunchIn
           </div>
           <nav className="dash-nav">
             <button className="nav-item active">
@@ -256,8 +310,8 @@ export default function DashboardPage() {
 
             <div className="stat-card">
               <div className="stat-label">Hours Today</div>
-              <div className="stat-value" style={{ color: "yellow" }}>
-                {hours !== null ? `${hours}H` : "—"}
+              <div className="stat-value" style={{ color: "var(--accent)" }}>
+                {hours !== null ? `${hours}h` : "—"}
               </div>
               <div className="stat-sub">{new Date().toLocaleDateString(undefined, { month: "short", day: "numeric" })}</div>
               <div className="stat-bar" style={{ background: "linear-gradient(90deg, transparent, var(--accent))" }} />
@@ -265,7 +319,7 @@ export default function DashboardPage() {
 
             <div className="stat-card">
               <div className="stat-label">Recent Events</div>
-              <div className="stat-value" style={{ color: "blue" }}>{history.length}</div>
+              <div className="stat-value" style={{ color: "var(--amber)" }}>{history.length}</div>
               <div className="stat-sub">last 20 entries</div>
               <div className="stat-bar" style={{ background: "linear-gradient(90deg, transparent, var(--amber))" }} />
             </div>
@@ -294,7 +348,11 @@ export default function DashboardPage() {
               </tbody>
             </table>
           </div>
+
+          <RosterPanel />
+
         </main>
+        </div>
       </div>
     </>
   );

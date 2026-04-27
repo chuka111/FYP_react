@@ -3,9 +3,21 @@ import { auth } from "@/lib/firebase";
 const BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 async function getToken() {
-  const u = auth.currentUser;
-  if (!u) return null;
-  return await u.getIdToken();
+  // If currentUser is already available, use it immediately
+  if (auth.currentUser) {
+    return await auth.currentUser.getIdToken();
+  }
+  // Otherwise wait for auth to rehydrate
+  return new Promise((resolve) => {
+    const unsub = auth.onAuthStateChanged(async (u) => {
+      unsub();
+      if (u) {
+        resolve(await u.getIdToken());
+      } else {
+        resolve(null);
+      }
+    });
+  });
 }
 
 export async function apiGet(path) {
@@ -56,8 +68,20 @@ export async function apiPatch(path, body) {
   return res.json();
 }
 
+export async function apiDelete(path) {
+  const token = await getToken();
+  const res = await fetch(`${BASE}${path}`, {
+    method: "DELETE",
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `DELETE ${path} failed: ${res.status}`);
+  }
+  return res.json();
+}
+
 export function subscribeToEvents(token, onMessage, onError) {
-  const url = new URL(`${BASE}/events`);
   const controller = new AbortController();
 
   (async () => {
@@ -81,7 +105,7 @@ export function subscribeToEvents(token, onMessage, onError) {
         if (done) break;
         buf += decoder.decode(value, { stream: true });
         const lines = buf.split("\n");
-        buf = lines.pop(); 
+        buf = lines.pop();
         for (const line of lines) {
           if (line.startsWith("data: ")) {
             try {

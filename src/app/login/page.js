@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 
@@ -14,6 +14,11 @@ export default function LoginPage() {
   const [err, setErr]           = useState("");
   const [busy, setBusy]         = useState(false);
   const [mounted, setMounted]   = useState(false);
+  const [showForgot, setShowForgot] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetBusy, setResetBusy]   = useState(false);
+  const [resetMsg, setResetMsg]     = useState("");
+  const [resetErr, setResetErr]     = useState("");
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -37,6 +42,32 @@ export default function LoginPage() {
     }
   }
 
+  async function onReset(e) {
+    e.preventDefault();
+    if (!resetEmail.trim()) {
+      setResetErr("Please enter your email address.");
+      return;
+    }
+    setResetBusy(true);
+    setResetErr("");
+    setResetMsg("");
+    try {
+      await sendPasswordResetEmail(auth, resetEmail.trim());
+      setResetMsg(`Reset link sent to ${resetEmail.trim()}. Check your inbox.`);
+      setResetEmail("");
+    } catch (e) {
+      setResetErr(
+        e?.code === "auth/user-not-found"
+          ? "No account found with that email."
+          : e?.code === "auth/invalid-email"
+          ? "Please enter a valid email address."
+          : "Failed to send reset email. Try again."
+      );
+    } finally {
+      setResetBusy(false);
+    }
+  }
+
   return (
     <>
       <style>{`
@@ -48,6 +79,7 @@ export default function LoginPage() {
           overflow: hidden;
         }
 
+        /* ── Left panel ── */
         .login-left {
           position: relative;
           display: flex;
@@ -172,6 +204,7 @@ export default function LoginPage() {
           margin-top: 2px;
         }
 
+        /* ── Camera widget ── */
         .camera-widget {
           position: absolute;
           bottom: 40px; right: 40px;
@@ -209,6 +242,7 @@ export default function LoginPage() {
           margin-top: 2px;
         }
 
+        /* ── Right panel ── */
         .login-right {
           display: flex;
           align-items: center;
@@ -344,6 +378,117 @@ export default function LoginPage() {
           line-height: 1.6;
         }
 
+        .forgot-link {
+          display: block;
+          text-align: right;
+          font-size: 12px;
+          font-weight: 600;
+          color: var(--accent);
+          cursor: pointer;
+          margin-top: -8px;
+          margin-bottom: 16px;
+          background: none;
+          border: none;
+          padding: 0;
+          font-family: 'Syne', sans-serif;
+          transition: opacity 0.15s;
+        }
+        .forgot-link:hover { opacity: 0.75; }
+
+        /* ── Reset modal overlay ── */
+        .reset-overlay {
+          position: fixed; inset: 0;
+          background: rgba(0,0,0,0.65);
+          z-index: 60;
+          display: flex; align-items: center; justify-content: center;
+          animation: fade-in 0.2s ease;
+        }
+        .reset-modal {
+          background: var(--bg-surface);
+          border: 1px solid var(--border-strong);
+          border-radius: 18px;
+          padding: 32px;
+          width: 400px;
+          max-width: 90vw;
+          box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+          animation: scale-in 0.25s cubic-bezier(0.16,1,0.3,1);
+        }
+        .reset-title {
+          font-size: 20px;
+          font-weight: 800;
+          color: var(--text-primary);
+          margin-bottom: 6px;
+          font-family: 'Syne', sans-serif;
+          letter-spacing: -0.5px;
+        }
+        .reset-subtitle {
+          font-size: 13px;
+          color: var(--text-secondary);
+          margin-bottom: 24px;
+          line-height: 1.6;
+        }
+        .reset-success {
+          background: var(--green-dim);
+          border: 1px solid rgba(61,220,132,0.25);
+          border-radius: var(--radius-md);
+          padding: 12px 14px;
+          color: var(--green);
+          font-size: 13px;
+          font-weight: 600;
+          margin-bottom: 16px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .reset-error {
+          background: var(--red-dim);
+          border: 1px solid rgba(255,95,109,0.25);
+          border-radius: var(--radius-md);
+          padding: 11px 14px;
+          color: var(--red);
+          font-size: 13px;
+          margin-bottom: 16px;
+        }
+        .reset-actions {
+          display: flex;
+          gap: 10px;
+          margin-top: 8px;
+        }
+        .reset-cancel {
+          flex: 1;
+          background: transparent;
+          border: 1px solid var(--border-strong);
+          border-radius: var(--radius-md);
+          padding: 12px;
+          color: var(--text-secondary);
+          font-size: 13px;
+          font-weight: 600;
+          cursor: pointer;
+          font-family: 'Syne', sans-serif;
+          transition: background 0.15s;
+        }
+        .reset-cancel:hover { background: var(--bg-hover); color: var(--text-primary); }
+        .reset-submit {
+          flex: 2;
+          background: var(--accent);
+          border: none;
+          border-radius: var(--radius-md);
+          padding: 12px;
+          color: #fff;
+          font-size: 13px;
+          font-weight: 700;
+          cursor: pointer;
+          font-family: 'Syne', sans-serif;
+          transition: opacity 0.15s;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+        }
+        .reset-submit:hover:not(:disabled) { opacity: 0.88; }
+        .reset-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* ── Responsive ── */
         @media (max-width: 700px) {
           .login-root { grid-template-columns: 1fr; }
           .login-left { display: none; }
@@ -356,32 +501,44 @@ export default function LoginPage() {
           <div className="login-grid-bg" />
 
           <div className="login-brand">
-            Smart Punch In (FYP)
+            <div className="login-brand-icon">◉</div>
+            PunchIn
           </div>
 
           <div className="login-hero">
             <div className="login-hero-label">Attendance System</div>
             <h1>
-              Check your work status live<br />
+              Know who's in,<br />
+              <span>right now.</span>
             </h1>
             <p>
-              Real time facial recognition attendance.
-              Clock in with just your face!
+              Real-time facial recognition powered attendance.
+              Clock in automatically — just walk through the door.
             </p>
           </div>
 
-          <div>
-            <div className="camera-widget">
-              <div className="camera-icon">📷</div>
-              <div>
-                <div className="camera-text-top">Pi Camera Active</div>
-                <div className="camera-text-sub">Recognition running</div>
-              </div>
-              <span className="live-dot" style={{ marginLeft: 8 }} />
+          <div className="login-stats">
+            <div>
+              <div className="login-stat-num">10s</div>
+              <div className="login-stat-label">Cooldown period</div>
             </div>
-          </div>  
+            <div>
+              <div className="login-stat-num">100%</div>
+              <div className="login-stat-label">Local processing</div>
+            </div>
+          </div>
+
+          <div className="camera-widget">
+            <div className="camera-icon">📷</div>
+            <div>
+              <div className="camera-text-top">Pi Camera Active</div>
+              <div className="camera-text-sub">Recognition running</div>
+            </div>
+            <span className="live-dot" style={{ marginLeft: 8 }} />
+          </div>
         </div>
 
+        {/*Right form panel*/}
         <div className="login-right">
           <div className="login-form-wrap">
             <div className="login-form-title">Welcome back</div>
@@ -394,7 +551,7 @@ export default function LoginPage() {
                   id="email"
                   className="form-input"
                   type="email"
-                  placeholder="you@company.com"
+                  placeholder="john@atu.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -408,7 +565,7 @@ export default function LoginPage() {
                   id="password"
                   className="form-input"
                   type="password"
-                  placeholder="********"
+                  placeholder="*******"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -416,24 +573,112 @@ export default function LoginPage() {
                 />
               </div>
 
+              <button
+                type="button"
+                className="forgot-link"
+                onClick={() => {
+                  setResetEmail(email.trim());
+                  setResetMsg("");
+                  setResetErr("");
+                  setShowForgot(true);
+                }}
+              >
+                Forgot password?
+              </button>
+
               {err && (
                 <div className="form-error">
-                  <span>ERROR!!!</span> {err}
+                  <span>⚠</span> {err}
                 </div>
               )}
 
               <button className="submit-btn" type="submit" disabled={busy}>
-                {busy ? <><div className="btn-spinner" /> Signing in…</> : "Sign in"}
+                {busy ? <><div className="btn-spinner" /> Signing in…</> : "Sign in →"}
               </button>
             </form>
 
             <div className="login-divider" />
             <div className="login-note">
-              Don't have an account? Contact your admin.<br />
+              Don't have an account? Contact your administrator.<br />
+              Face recognition clocks you in automatically on-site.
             </div>
           </div>
         </div>
       </div>
+
+      {/* Forgot Password Modal */}
+      {showForgot && (
+        <div className="reset-overlay" onClick={() => setShowForgot(false)}>
+          <div className="reset-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="reset-title">Reset Password</div>
+            <div className="reset-subtitle">
+              Enter your email address and we will send you a link to reset your password.
+            </div>
+
+            {resetMsg && (
+              <div className="reset-success">
+                <span>✓</span> {resetMsg}
+              </div>
+            )}
+
+            {resetErr && (
+              <div className="reset-error">{resetErr}</div>
+            )}
+
+            {!resetMsg && (
+              <form onSubmit={onReset}>
+                <div className="form-group">
+                  <label className="form-label" htmlFor="reset-email">Email Address</label>
+                  <input
+                    id="reset-email"
+                    className="form-input"
+                    type="email"
+                    placeholder="john@atu.com"
+                    value={resetEmail}
+                    onChange={(e) => setResetEmail(e.target.value)}
+                    autoComplete="email"
+                    disabled={resetBusy}
+                    autoFocus
+                  />
+                </div>
+
+                <div className="reset-actions">
+                  <button
+                    type="button"
+                    className="reset-cancel"
+                    onClick={() => setShowForgot(false)}
+                    disabled={resetBusy}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="reset-submit"
+                    disabled={resetBusy || !resetEmail.trim()}
+                  >
+                    {resetBusy
+                      ? <><div className="btn-spinner" /> Sending…</>
+                      : "Send Reset Link →"}
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {resetMsg && (
+              <div className="reset-actions">
+                <button
+                  type="button"
+                  className="reset-submit"
+                  style={{ flex: 1 }}
+                  onClick={() => setShowForgot(false)}
+                >
+                  Back to Login
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </>
   );
 }

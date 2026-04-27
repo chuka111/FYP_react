@@ -172,6 +172,19 @@ export default function AdminPage() {
   return (
     <>
       <style>{`
+
+        @media (max-width: 768px) {
+          .admin-sidebar { display: none; }
+          .admin-main { padding: 20px 16px; }
+          .stat-strip { flex-wrap: wrap; }
+          .stat-item { min-width: 45%; border-right: none; border-bottom: 1px solid var(--border); }
+          .filter-row { flex-wrap: wrap; }
+          .search-input { min-width: 100%; }
+          .emp-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+          .add-emp-btn { width: 100%; justify-content: center; }
+        }
+
+
         @import url('https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=JetBrains+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         :root {
@@ -313,6 +326,12 @@ export default function AdminPage() {
             </button>
             <button className="nav-item active">
               <span className="nav-icon">◈</span> Admin
+            </button>
+            <button className="nav-item" onClick={() => router.push("/admin/roster")}>
+              <span className="nav-icon">▦</span> Roster
+            </button>
+            <button className="nav-item" onClick={() => router.push("/admin/report")}>
+              <span className="nav-icon">◎</span> Report
             </button>
           </nav>
           <div className="admin-sidebar-bottom">
